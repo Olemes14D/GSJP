@@ -1,17 +1,21 @@
-// app/(auth)/login/page.tsx - VERSION SANS SHADCN
+// app/(auth)/login/page.tsx - VERSION AMÉLIORÉE
 "use client";
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Afficher un message si l'utilisateur vient de s'inscrire
+  const registered = searchParams.get("registered");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,15 +30,18 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        setError("Invalid email or password. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      if (result?.ok) {
+        router.push("/dashboard");
+        router.refresh();
+      }
     } catch (error) {
-      setError("An error occurred. Please try again.");
+      console.error("Login error:", error);
+      setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
     }
   };
@@ -46,8 +53,17 @@ export default function LoginPage() {
         <p className="text-gray-600">Sign in to your account to continue</p>
       </div>
 
+      {registered && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-800">
+            ✓ Account created successfully! You can now sign in.
+          </p>
+        </div>
+      )}
+
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-red-600">{error}</p>
         </div>
       )}
@@ -66,6 +82,7 @@ export default function LoginPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
             required
             disabled={isLoading}
+            autoComplete="email"
           />
         </div>
 
@@ -87,6 +104,7 @@ export default function LoginPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
             required
             disabled={isLoading}
+            autoComplete="current-password"
           />
         </div>
 
@@ -112,6 +130,17 @@ export default function LoginPage() {
           Create account
         </Link>
       </div>
+
+      {/* Test accounts info (à retirer en production) */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <p className="text-xs text-gray-600 font-semibold mb-2">Test Accounts:</p>
+          <div className="space-y-1 text-xs text-gray-600">
+            <p>Author: author@example.com / password123</p>
+            <p>Editor: editor@gsjpediatrics.org / password123</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
