@@ -1,0 +1,256 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma" // Pour PlanetScale, sinon commenter
+}
+
+// ============================================
+// UTILISATEURS & AUTHENTIFICATION
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  fullName      String?
+  role          Role      @default(AUTHOR)
+  institution   String?
+  country       String?
+  orcid         String?   @unique
+  bio           String?   @db.Text
+  specialties   String?   @db.Text // JSON array
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  submissions   Submission[]
+  reviews       Review[]
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+  editorialBoard EditorialBoard?
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+enum Role {
+  AUTHOR
+  REVIEWER
+  EDITOR
+  ADMIN
+}
+
+// ============================================
+// SOUMISSIONS D'ARTICLES
+// ============================================
+
+model Submission {
+  id                      String           @id @default(cuid())
+  authorId                String
+  title                   String           @db.Text
+  abstract                String           @db.Text
+  keywords                String?          @db.Text // JSON array
+  articleType             ArticleType
+  status                  SubmissionStatus @default(SUBMITTED)
+  manuscriptFileUrl       String?
+  figuresUrls             String?          @db.Text // JSON array
+  wordCount               Int?
+  correspondingAuthor     String           @db.Text // JSON object
+  coAuthors               String?          @db.Text // JSON array
+  ethicalApprovalNumber   String?
+  fundingInfo             String?          @db.Text
+  conflictsOfInterest     String?          @db.Text
+  submittedAt             DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  // Relations
+  author                  User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reviews                 Review[]
+  publication             Publication?
+  activityLogs            ActivityLog[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([articleType])
+  @@index([submittedAt])
+  @@map("submissions")
+}
+
+enum ArticleType {
+  ORIGINAL_RESEARCH
+  REVIEW
+  SYSTEMATIC_REVIEW
+  CASE_REPORT
+  BRIEF_COMMUNICATION
+  COMMENTARY
+  PERSPECTIVE
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  REVISIONS_REQUESTED
+  REVISED_SUBMITTED
+  ACCEPTED
+  REJECTED
+  PUBLISHED
+  WITHDRAWN
+}
+
+// ============================================
+// PEER REVIEW
+// ============================================
+
+model Review {
+  id                    String           @id @default(cuid())
+  submissionId          String
+  reviewerId            String
+  status                ReviewStatus     @default(INVITED)
+  recommendation        Recommendation?
+  commentsToAuthor      String?          @db.Text
+  commentsToEditor      String?          @db.Text
+  confidentialComments  String?          @db.Text
+  reviewQuality         String?          @db.Text // JSON object (scores)
+  invitedAt             DateTime         @default(now())
+  acceptedAt            DateTime?
+  completedAt           DateTime?
+  dueDate               DateTime?
+
+  // Relations
+  submission            Submission       @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewer              User             @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([reviewerId])
+  @@index([status])
+  @@map("reviews")
+}
+
+enum ReviewStatus {
+  INVITED
+  ACCEPTED
+  DECLINED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum Recommendation {
+  ACCEPT
+  MINOR_REVISIONS
+  MAJOR_REVISIONS
+  REJECT
+}
+
+// ============================================
+// PUBLICATIONS
+// ============================================
+
+model Publication {
+  id              String    @id @default(cuid())
+  submissionId    String    @unique
+  doi             String    @unique
+  volume          Int?
+  issue           Int?
+  pages           String?
+  publishedDate   DateTime
+  pdfUrl          String
+  htmlUrl         String?
+  xmlUrl          String?
+  viewsCount      Int       @default(0)
+  downloadsCount  Int       @default(0)
+  license         String    @default("CC-BY-4.0")
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  submission      Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([doi])
+  @@index([publishedDate])
+  @@map("publications")
+}
+
+// ============================================
+// COMITÉ ÉDITORIAL
+// ============================================
+
+model EditorialBoard {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  boardRole       BoardRole
+  section         String?
+  bio             String?   @db.Text
+  photoUrl        String?
+  displayOrder    Int       @default(999)
+  active          Boolean   @default(true)
+  startedAt       DateTime  @default(now())
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([boardRole])
+  @@index([active])
+  @@map("editorial_board")
+}
+
+enum BoardRole {
+  EDITOR_IN_CHIEF
+  DEPUTY_EDITOR
+  ASSOCIATE_EDITOR
+  SECTION_EDITOR
+  EDITORIAL_MEMBER
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  type        String
+  title       String
+  message     String    @db.Text
+  link        String?
+  read        Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ============================================
+// LOGS D'ACTIVITÉ
+// ============================================
+
+model ActivityLog {
+  id            String      @id @default(cuid())
+  submissionId  String?
+  userId        String
+  action        String
+  details       String?     @db.Text // JSON object
+  createdAt     DateTime    @default(now())
+
+  // Relations
+  submission    Submission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
