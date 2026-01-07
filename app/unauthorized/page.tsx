@@ -1,7 +1,6 @@
 // app/unauthorized/page.tsx
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export default function UnauthorizedPage() {
   return (
@@ -14,30 +13,23 @@ export default function UnauthorizedPage() {
         <div className="space-y-2">
           <h1 className="text-3xl font-bold text-gray-900">Access Denied</h1>
           <p className="text-gray-600">
-            You don't have permission to access this page. This area is restricted to specific user roles.
+            You don't have permission to access this page.
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link href="/">
-            <Button variant="outline">
-              Go to Homepage
-            </Button>
+          <Link
+            href="/"
+            className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+          >
+            Go to Homepage
           </Link>
-          <Link href="/dashboard">
-            <Button>
-              Go to Dashboard
-            </Button>
+          <Link
+            href="/dashboard"
+            className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
+          >
+            Go to Dashboard
           </Link>
-        </div>
-
-        <div className="pt-6 border-t border-gray-200">
-          <p className="text-sm text-gray-500">
-            Need access? Contact us at{" "}
-            <a href="mailto:support@gsjpediatrics.org" className="text-blue-600 hover:underline">
-              support@gsjpediatrics.org
-            </a>
-          </p>
         </div>
       </div>
     </div>

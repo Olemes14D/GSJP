@@ -4,8 +4,8 @@
 import { BookOpen, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { useSession } from "next-auth/react";
-import { UserMenu } from "@/components/auth/UserMenu";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -18,7 +18,14 @@ const navigation = [
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { data: session } = useSession();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut({ redirect: false });
+    router.push("/");
+  };
 
   return (
     <header className="fixed top-0 w-full bg-white border-b border-gray-200 z-50 shadow-sm">
@@ -48,17 +55,70 @@ export function Header() {
             ))}
           </div>
 
-          {/* User Menu & Submit Button */}
+          {/* User Section */}
           <div className="hidden md:flex items-center space-x-4">
-            {session && (
-              <Link
-                href="/submit"
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Submit Article
-              </Link>
+            {status === "loading" ? (
+              <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
+            ) : session ? (
+              <>
+                <Link
+                  href="/submit"
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+                >
+                  Submit Article
+                </Link>
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+                  >
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      {session.user.name?.charAt(0) || "U"}
+                    </div>
+                  </button>
+
+                  {userMenuOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setUserMenuOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-20">
+                        <div className="px-4 py-2 border-b">
+                          <p className="text-sm font-medium text-gray-900">{session.user.name}</p>
+                          <p className="text-xs text-gray-500">{session.user.email}</p>
+                        </div>
+                        <Link
+                          href="/dashboard"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          Dashboard
+                        </Link>
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-blue-600">
+                  Sign in
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+                >
+                  Get started
+                </Link>
+              </>
             )}
-            <UserMenu />
           </div>
 
           {/* Mobile menu button */}
@@ -66,11 +126,7 @@ export function Header() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 text-gray-700"
           >
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
       </nav>
@@ -89,9 +145,37 @@ export function Header() {
                 {item.name}
               </Link>
             ))}
-            <div className="pt-3 border-t border-gray-200">
-              <UserMenu />
-            </div>
+            {session ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md text-center"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full px-4 py-2 border-2 border-red-600 text-red-600 text-sm font-medium rounded-md"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="block px-4 py-2 border-2 border-gray-300 text-gray-700 text-sm font-medium rounded-md text-center"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/register"
+                  className="block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md text-center"
+                >
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

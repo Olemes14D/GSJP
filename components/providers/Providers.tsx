@@ -2,15 +2,22 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { Header } from "@/components/layout/Header";
+import { useEffect, useState } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <SessionProvider>
-      <Header />
-      <main className="min-h-screen pt-16 bg-gray-50">
-        {children}
-      </main>
+      {children}
     </SessionProvider>
   );
 }
